@@ -101,6 +101,12 @@
         <groupId>io.grpc</groupId>
         <artifactId>grpc-all</artifactId>
         <version>${grpc.version}</version>
+        <exclusions>
+          <exclusion>
+            <artifactId>okio</artifactId>
+            <groupId>com.squareup.okio</groupId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
@@ -118,7 +124,6 @@
   </dependencyManagement>
 
   <build>
-
     <extensions>
       <extension>
         <groupId>kr.motd.maven</groupId>
@@ -142,6 +147,10 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.7.0</version>
+          <configuration>
+            <source>${maven.compiler.source}</source>
+            <target>${maven.compiler.target}</target>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -183,16 +192,100 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>${maven-checkstyle-plugin.version}</version>
+          <configuration>
+            <configLocation>${rootPOM}/build/checkstyle/checkstyle.xml</configLocation>
+            <suppressionsLocation>${rootPOM}/build/checkstyle/suppressions.xml
+            </suppressionsLocation>
+            <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
+            <!-- Ensure generated source files are not style-checked -->
+            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            <encoding>UTF-8</encoding>
+            <consoleOutput>true</consoleOutput>
+            <failsOnError>true</failsOnError>
+            <linkXRef>false</linkXRef>
+            <outputFile>
+              ${project.build.directory}/reports/checkstyle/checkstyle-errors.xml
+            </outputFile>
+          </configuration>
+          <executions>
+            <execution>
+              <id>checkstyle</id>
+              <phase>validate</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
           <version>${findbugs.version}</version>
+          <executions>
+            <execution>
+              <id>check</id>
+              <phase>compile</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <findbugsXmlOutput>true</findbugsXmlOutput>
+            <failOnError>true</failOnError>
+            <xmlOutput>true</xmlOutput>
+            <excludeFilterFile>${rootPOM}/build/findbugs/findbugs-exclude.xml</excludeFilterFile>
+            <threshold>Low</threshold>
+            <effort>100</effort>
+            <findbugsXmlOutputDirectory>${rootPOM}/target/reports/findbugs/
+            </findbugsXmlOutputDirectory>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
           <version>1.4</version>
+
+          <dependencies>
+            <dependency>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>extra-enforcer-rules</artifactId>
+              <version>1.2</version>
+            </dependency>
+          </dependencies>
+          <executions>
+            <execution>
+              <id>enforce</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <rules>
+              <dependencyConvergence/>
+              <bannedDependencies>
+                <searchTransitive>true</searchTransitive>
+                <message>some dependency must exclude</message>
+              </bannedDependencies>
+              <banDuplicateClasses>
+                <ignoreClasses>
+                  <ignoreClass>javax.*</ignoreClass>
+                  <ignoreClass>org.junit.*</ignoreClass>
+                  <ignoreClass>junit.*</ignoreClass>
+                  <ignoreClass>org.apache.xbean.recipe.*</ignoreClass>
+                  <ignoreClass>org.hamcrest.*</ignoreClass>
+                  <ignoreClass>org.slf4j.*</ignoreClass>
+                  <ignoreClass>org.antlr.runtime.*</ignoreClass>
+                  <ignoreClass>org.apache.commons.lang.*</ignoreClass>
+                  <ignoreClass>org.apache.commons.codec.*</ignoreClass>
+                  <ignoreClass>org.apache.commons.logging.*</ignoreClass>
+                  <ignoreClass>org.codehaus.plexus.component.builder.*</ignoreClass>
+                </ignoreClasses>
+                <findAllDuplicates>true</findAllDuplicates>
+              </banDuplicateClasses>
+            </rules>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -299,89 +392,18 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <configuration>
-          <configLocation>${rootPOM}/build/checkstyle/checkstyle.xml</configLocation>
-          <suppressionsLocation>${rootPOM}/build/checkstyle/suppressions.xml</suppressionsLocation>
-          <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
-          <!-- Ensure generated source files are not style-checked -->
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <encoding>UTF-8</encoding>
-          <consoleOutput>true</consoleOutput>
-          <failsOnError>true</failsOnError>
-          <linkXRef>false</linkXRef>
-          <outputFile>
-            ${project.build.directory}/reports/checkstyle/checkstyle-errors.xml
-          </outputFile>
-        </configuration>
-        <executions>
-          <execution>
-            <id>checkstyle</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>check</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <findbugsXmlOutput>true</findbugsXmlOutput>
-          <failOnError>true</failOnError>
-          <xmlOutput>true</xmlOutput>
-          <excludeFilterFile>${rootPOM}/build/findbugs/findbugs-exclude.xml</excludeFilterFile>
-          <threshold>Low</threshold>
-          <effort>100</effort>
-          <findbugsXmlOutputDirectory>${rootPOM}/target/reports/findbugs/
-          </findbugsXmlOutputDirectory>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>enforce-versions</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <rules>
-            <DependencyConvergence/>
-            <bannedDependencies>
-              <searchTransitive>true</searchTransitive>
-              <excludes>
-                <exclude>org.slf4j:slf4j-log4j12</exclude>
-                <exclude>org.slf4j:slf4j-log4j13</exclude>
-              </excludes>
-              <includes>
-                <include>org.apache.logging.log4j:log4j-core:${log4j.version}</include>
-                <include>org.apache.logging.log4j:log4j-slf4j-impl:${log4j.version}</include>
-              </includes>
-              <message>must use log4j2</message>
-            </bannedDependencies>
-          </rules>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>pl.project13.maven</groupId>
@@ -474,5 +496,4 @@
       </build>
     </profile>
   </profiles>
-
 </project>
